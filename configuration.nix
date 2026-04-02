@@ -27,6 +27,7 @@
   # ============================================================
   networking.hostName = "bc-ws";
   networking.networkmanager.enable = true;
+  systemd.services.NetworkManager-wait-online.enable = false; # no benefit on a desktop
 
   # DNS-over-TLS via systemd-resolved. Uses DHCP-assigned DNS servers
   # but upgrades to TLS when the server supports it.
@@ -34,9 +35,6 @@
     enable = true;
     settings.Resolve.DNSOverTLS = "opportunistic";
   };
-
-  # NM-wait-online adds seconds to every boot for no benefit on a desktop.
-  systemd.services.NetworkManager-wait-online.enable = false;
 
   # ============================================================
   # Locale

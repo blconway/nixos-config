@@ -57,7 +57,7 @@
     };
   };
 
-  # dconf — expose theme settings to Flatpak GTK apps via the portal.
+  # Expose theme settings to Flatpak GTK apps via the portal.
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       gtk-theme = "Pop-dark";
@@ -80,38 +80,18 @@
     };
   };
 
-  programs.starship = {
-    enable = true;
-  };
-
-  # bat — cat with syntax highlighting and line numbers
-  programs.bat = {
-    enable = true;
-    config.theme = "TwoDark";
-  };
-
-  # eza — modern ls replacement with icons and git status
-  programs.eza = {
+  programs.starship.enable = true;                  # cross-shell prompt with git status
+  programs.bat = { enable = true; config.theme = "TwoDark"; }; # cat with syntax highlighting
+  programs.fzf = { enable = true; defaultOptions = [ "--color=dark" ]; }; # fuzzy finder (Ctrl+R/Ctrl+T)
+  programs.zoxide.enable = true;                     # smart cd — use `z` instead
+  programs.eza = {                                   # modern ls with icons and git status
     enable = true;
     icons = "auto";
     git = true;
     extraOptions = [ "--group-directories-first" ];
   };
-
-  # fzf — fuzzy finder (Ctrl+R for history, Ctrl+T for files)
-  programs.fzf = {
+  programs.direnv = {                                # auto-loads per-project dev environments
     enable = true;
-    defaultOptions = [ "--color=dark" ];
-  };
-
-  # zoxide — smart cd that learns your most-used directories
-  programs.zoxide.enable = true;
-
-  # direnv — auto-loads per-project dev environments on cd.
-  # Use with `nix develop` flakes: create a .envrc with "use flake"
-  # and direnv loads/unloads the environment automatically.
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true; # cached nix evaluation for faster shell entry
+    nix-direnv.enable = true;
   };
 }

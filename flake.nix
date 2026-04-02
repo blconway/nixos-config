@@ -14,7 +14,6 @@
 
     # nix-flatpak — declarative Flatpak management via Home Manager.
     nix-flatpak.url = "github:gmodena/nix-flatpak";
-
   };
 
   outputs = { self, nixpkgs, home-manager, nix-flatpak, ... }: {
