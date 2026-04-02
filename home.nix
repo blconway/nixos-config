@@ -17,7 +17,7 @@
     enable = true;
     settings = {
       user.name = "Brandon Conway";
-      user.email = "bconway2007@gmail.com";
+      user.email = "23000270+blconway@users.noreply.github.com";
       init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;
