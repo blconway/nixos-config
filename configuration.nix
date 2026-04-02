@@ -60,6 +60,12 @@
     adwaita-fonts
   ];
 
+  # udev rules for Steam controllers, Valve hardware, and gaming peripherals.
+  hardware.steam-hardware.enable = true;
+
+  # OpenRGB — controls LEDs on Gigabyte motherboards, GPUs, RAM, etc.
+  services.hardware.openrgb.enable = true;
+
   # ============================================================
   # Shell & Security
   # ============================================================
