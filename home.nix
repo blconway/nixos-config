@@ -35,37 +35,22 @@
 
   services.flatpak.packages = [
     "org.mozilla.firefox"
+    "io.github.kolunmi.Bazaar"
   ];
 
   # ============================================================
-  # GTK theming — make Flatpak GTK apps match COSMIC's look
+  # GNOME extensions
   # ============================================================
-  gtk = {
-    enable = true;
-    gtk4.theme = null;
-    theme = {
-      name = "Pop-dark";
-      package = pkgs.pop-gtk-theme;
-    };
-    iconTheme = {
-      name = "Pop";
-      package = pkgs.pop-icon-theme;
-    };
-    cursorTheme = {
-      name = "cosmic";
-      package = pkgs.cosmic-icons;
-    };
-  };
+  home.packages = with pkgs; [
+    gnomeExtensions.hot-edge
+  ];
 
-  # Expose theme settings to Flatpak GTK apps via the portal.
   dconf.settings = {
-    "org/gnome/desktop/interface" = {
-      gtk-theme = "Pop-dark";
-      icon-theme = "Pop";
-      color-scheme = "prefer-dark";
+    "org/gnome/shell" = {
+      enabled-extensions = [ "hotedge@jonathan.jdoda.ca" ];
     };
-    "org/gnome/desktop/wm/preferences" = {
-      button-layout = "appmenu:minimize,maximize,close";
+    "org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
     };
   };
 

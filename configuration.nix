@@ -4,7 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ./modules/nvidia.nix
-    ./modules/cosmic.nix
+    ./modules/gnome.nix
     ./modules/audio.nix
   ];
 
@@ -57,7 +57,6 @@
     noto-fonts-color-emoji
     jetbrains-mono
     nerd-fonts.jetbrains-mono
-    adwaita-fonts
   ];
 
   # udev rules for Steam controllers, Valve hardware, and gaming peripherals.
