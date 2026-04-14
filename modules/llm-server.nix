@@ -10,7 +10,9 @@
     host = "0.0.0.0";
     port = 11434;
     openFirewall = false;          # only accessible via tailnet (trustedInterfaces)
-    # Models are large — pull manually with `ollama pull` rather than on boot.
+    loadModels = [
+      "qwen3:32b-q8_0"
+    ];
     # To switch to ROCm, uncomment below and comment out ollama-vulkan above:
     # package = pkgs.ollama-rocm;
     # rocmOverrideGfx = "11.5.0";
