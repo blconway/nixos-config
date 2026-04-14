@@ -29,6 +29,28 @@
     environment = {
       OLLAMA_BASE_URL = "http://127.0.0.1:11434";
       WEBUI_AUTH = "True";
+      ENABLE_RAG_WEB_SEARCH = "True";
+      RAG_WEB_SEARCH_ENGINE = "searxng";
+      SEARXNG_QUERY_URL = "http://127.0.0.1:8888/search?q=<query>&format=json";
     };
+  };
+
+  # ============================================================
+  # SearXNG — meta-search engine for RAG web search
+  # ============================================================
+  services.searx = {
+    enable = true;
+    redisCreateLocally = true;
+    settings = {
+      server = {
+        port = 8888;
+        bind_address = "127.0.0.1";
+        secret_key = "@SEARX_SECRET_KEY@";
+      };
+      search = {
+        formats = [ "html" "json" ];
+      };
+    };
+    environmentFile = "/etc/secrets/searx-env";
   };
 }
