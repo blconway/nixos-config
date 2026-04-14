@@ -75,6 +75,6 @@
         formats = [ "html" "json" ];
       };
     };
-    environmentFile = "/run/secrets/searx-env";
+    environmentFile = "/etc/secrets/searx-env";
   };
 }
