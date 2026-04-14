@@ -41,7 +41,7 @@
   # ============================================================
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 22 ];
+    allowedTCPPorts = [ 22 8080 ];
     trustedInterfaces = [ "tailscale0" ];  # all ports open on tailnet
   };
 
