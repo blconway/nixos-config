@@ -33,6 +33,29 @@
       RAG_WEB_SEARCH_ENGINE = "searxng";
       SEARXNG_QUERY_URL = "http://127.0.0.1:8888/search?q=<query>&format=json";
       WEBUI_AUTH = "True";
+      # STT — built-in Whisper (no extra service needed)
+      AUDIO_STT_ENGINE = "";
+      WHISPER_MODEL = "large-v3";
+      WHISPER_COMPUTE_TYPE = "float16";
+      # TTS — Kokoro FastAPI container
+      AUDIO_TTS_ENGINE = "openai";
+      AUDIO_TTS_OPENAI_API_BASE_URL = "http://127.0.0.1:8880/v1";
+      AUDIO_TTS_OPENAI_API_KEY = "not-needed";
+    };
+  };
+
+  # ============================================================
+  # Kokoro FastAPI — local text-to-speech (OpenAI-compatible)
+  # ============================================================
+  virtualisation.podman.enable = true;
+  virtualisation.oci-containers = {
+    backend = "podman";
+    containers.kokoro-tts = {
+      image = "ghcr.io/remsky/kokoro-fastapi-cpu:latest";
+      ports = [ "127.0.0.1:8880:8880" ];
+      environment = {
+        PYTHONUNBUFFERED = "1";
+      };
     };
   };
 
