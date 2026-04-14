@@ -10,5 +10,7 @@
   home.packages = with pkgs; [
     btop
     ncdu
+    radeontop    # monitor iGPU utilization
+    tmux         # persistent SSH sessions
   ];
 }

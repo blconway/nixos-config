@@ -10,6 +10,10 @@
     host = "0.0.0.0";
     port = 11434;
     openFirewall = false;          # only accessible via tailnet (trustedInterfaces)
+    loadModels = [
+      "qwen3:235b-q3_K_M"         # primary — best quality, ~105GB, ~3-5 t/s
+      "qwen3:72b-q8_0"            # fast — quick questions and coding, ~72GB, ~10-15 t/s
+    ];
     # To switch to ROCm, uncomment below and comment out ollama-vulkan above:
     # package = pkgs.ollama-rocm;
     # rocmOverrideGfx = "11.5.0";
@@ -24,10 +28,11 @@
     port = 8080;
     openFirewall = false;
     environment = {
-      OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
+      OLLAMA_BASE_URL = "http://127.0.0.1:11434";
       ENABLE_RAG_WEB_SEARCH = "True";
       RAG_WEB_SEARCH_ENGINE = "searxng";
       SEARXNG_QUERY_URL = "http://127.0.0.1:8888/search?q=<query>&format=json";
+      WEBUI_AUTH = "True";
     };
   };
 
