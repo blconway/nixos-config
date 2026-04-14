@@ -1,9 +1,8 @@
 {
-  description = "Brandon's NixOS workstation";
+  description = "Brandon's NixOS machines";
 
   inputs = {
     # Unstable channel — rolling release with the latest packages.
-    # Switch back to a stable release (e.g. nixos-26.05) when it ships.
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # Home Manager — tracks master to match nixpkgs-unstable.
@@ -14,19 +13,22 @@
 
     # nix-flatpak — declarative Flatpak management via Home Manager.
     nix-flatpak.url = "github:gmodena/nix-flatpak";
+
+    # nixos-hardware — vendor-specific hardware quirks and optimisations.
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
   };
 
-  outputs = { self, nixpkgs, home-manager, nix-flatpak, ... }: {
+  outputs = { self, nixpkgs, home-manager, nix-flatpak, nixos-hardware, ... }: {
+
+    # ── Workstation ─────────────────────────────────────────
     nixosConfigurations.bc-ws = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
 
       modules = [
-        ./configuration.nix
+        ./hosts/bc-ws
 
-        # nix-flatpak NixOS module — manages system-level remotes declaratively.
         nix-flatpak.nixosModules.nix-flatpak
 
-        # Home Manager as a NixOS module so it activates on nixos-rebuild.
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
@@ -35,7 +37,26 @@
           home-manager.sharedModules = [
             nix-flatpak.homeManagerModules.nix-flatpak
           ];
-          home-manager.users.brandon = import ./home.nix;
+          home-manager.users.brandon = import ./hosts/bc-ws/home.nix;
+        }
+      ];
+    };
+
+    # ── LLM Server (Framework Desktop) ─────────────────────
+    nixosConfigurations.bc-llm = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+
+      modules = [
+        ./hosts/bc-llm
+
+        nixos-hardware.nixosModules.framework-desktop-amd-ai-max-300-series
+
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "backup";
+          home-manager.users.brandon = import ./hosts/bc-llm/home.nix;
         }
       ];
     };
