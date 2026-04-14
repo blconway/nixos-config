@@ -7,6 +7,8 @@
   home.homeDirectory = "/home/brandon";
   home.stateVersion = "25.11";
 
+  programs.fish.shellAliases.update = "sudo nix flake update --flake /etc/nixos && rebuild";
+
   # ============================================================
   # Flatpak packages
   # ============================================================

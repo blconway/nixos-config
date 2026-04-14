@@ -7,6 +7,8 @@
   home.homeDirectory = "/home/brandon";
   home.stateVersion = "25.11";
 
+  programs.fish.shellAliases.update = "cd /etc/nixos && git pull && rebuild";
+
   home.packages = with pkgs; [
     btop
     ncdu

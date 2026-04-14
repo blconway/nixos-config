@@ -34,7 +34,6 @@
     enable = true;
     shellAliases = {
       rebuild = "nh os switch /etc/nixos";
-      update  = "sudo nix flake update --flake /etc/nixos && rebuild";
     };
   };
 
