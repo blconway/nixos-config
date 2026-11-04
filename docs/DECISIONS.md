@@ -183,8 +183,14 @@ Left out on purpose:
   firewall for a tool nobody asked for. Add with `networking.nftables.enable`.
 - **OpenRazer:** no Razer hardware is known on bc-ws.
 - **sched-ext schedulers:** Bazzite supports them but leaves them off.
-- **Bazzite's kernel, or CachyOS's:** `linuxPackages_latest` is current, and
-  either would add a flake input (D9).
+- **Bazzite's kernel (Open Gaming Collective):** nixpkgs doesn't package it.
+  Its patch branches are mostly handheld hardware (Steam Deck, ASUS, Lenovo,
+  MSI Claw, AYANEO, OneXPlayer, Zotac), which bc-ws doesn't have. Building it
+  from source with `buildLinux` would compile the kernel and the NVIDIA, xone
+  and xpadneo modules on every update, and take the CI build far past ten
+  minutes. `linuxPackages_latest` is current; if a gaming-tuned kernel is
+  ever wanted, nixpkgs has `linuxPackages_zen`, `_xanmod` and `_lqx`.
+- **CachyOS's kernel:** would add a flake input (D9) for the same reasons.
 - **Homebrew:** nix-ld covers running prebuilt binaries; packages come from
   nixpkgs.
 - **Bazzite's preinstalled Flatpak apps** (OBS aside): personal app choices,
