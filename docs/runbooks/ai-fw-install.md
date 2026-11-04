@@ -22,7 +22,14 @@ Boot the ai-fw installer USB, then run one command over SSH from bc-ws. About
 ## Install
 
 1. Boot the USB. At the installer's prompt, `ip -4 addr` shows its address.
-2. From bc-ws (or anything holding one of ai-fw's SSH keys):
+2. Either at the installer's own console:
+
+   ```sh
+   sudo install-ai-fw /dev/nvme0n1
+   ```
+
+   or over SSH from a machine holding one of ai-fw's keys (the ones at
+   github.com/blconway.keys):
 
    ```sh
    ssh -t root@<installer-address> install-ai-fw /dev/nvme0n1
@@ -40,7 +47,8 @@ stock NixOS ISO instead, run its steps by hand.
 
 ## After first boot
 
-SSH in as `brandon` with your key (password login is off), using the LAN
+Log in as `brandon`: at the console with the password you set, or over SSH
+with one of ai-fw's keys (password login over SSH is off), using the LAN
 address until Tailscale is up.
 
 1. Join the tailnet, then approve the machine in the Tailscale admin console:
@@ -60,6 +68,19 @@ address until Tailscale is up.
    ```
 
 4. From another tailnet device: `curl http://ai-fw:8080/v1/models`.
+5. Check the performance settings took effect (D13):
+   - `journalctl -b -u platform-profile-performance` ends with
+     `platform_profile: performance`
+   - `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor` prints `performance`
+6. Measure what D13 left open, once the models are downloaded. The files are
+   under `/var/cache/private/llama-cpp` (`sudo find` them), for example:
+
+   ```sh
+   sudo llama-bench -m <qwen3.8 file> -fa 1 -mmp 0 -ub 1024 -p 512,16384 -n 128
+   ```
+
+   Then try Flash-Next with its MTP draft in a real agent task, and record the
+   numbers in D13 before changing a default.
 
 What a clean install loses, all of it recreated by the steps above: the
 downloaded models (~116 GB, re-downloaded after boot), the Tailscale node

@@ -33,6 +33,14 @@ let
         ];
     }
     {
+      d = "D13";
+      what = "llama-server runs with flash attention, no mmap, and the performance governor";
+      ok =
+        ai.services.llama-cpp.settings.flash-attn == "on"
+        && ai.services.llama-cpp.settings.load-mode == "none"
+        && ai.powerManagement.cpuFreqGovernor == "performance";
+    }
+    {
       d = "D1/D3";
       what = "ai-fw opens only SSH on the LAN";
       ok = ai.networking.firewall.allowedTCPPorts == [ 22 ];

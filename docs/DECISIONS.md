@@ -12,6 +12,7 @@
 - D10. bc-ws matches Bazzite DX NVIDIA, on NixOS
 - D11. What was borrowed from other NixOS configs, and what was not
 - D12. ai-fw installs from its own ISO; root has no password
+- D13. LLM performance settings for the Framework Desktop
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -288,3 +289,49 @@ in is `brandon` (SSH key, or the console) plus `sudo` with `brandon`'s
 password; if that password is lost, boot the installer and reset it with
 `nixos-enter`. `tests/invariants.nix` fails if a root password is ever
 configured. bc-ws is unchanged: its root keeps whatever was set at install.
+
+## D13. LLM performance settings for the Framework Desktop (2026-11-04)
+
+Hardware, read from this machine under Windows before the reimage: Framework
+Desktop, Ryzen AI Max+ 395 with Radeon 8060S, 127 GiB RAM, one WD SN850X 2 TB
+NVMe, BIOS 03.06 with the GPU carve-out already at its 0.5 GiB minimum.
+
+Source for the measured settings: hogeheer499-commits/strix-halo-guide
+(MTP_SPECULATIVE_DECODING.md, STRIX_HALO_LOCAL_LLM_SETUP.md), Strix Halo
+results only, read 2026-11-04.
+
+Baked in:
+
+- **Qwen3.6-35B-A3B with MTP speculative decoding** (`spec-type =
+  draft-mtp`, `spec-draft-n-max = 2`): +18% (Q4_K_M) to +35% (IQ4_XS with Q8
+  MTP head) generation on Vulkan. Needs the MTP layer, which
+  `unsloth/Qwen3.6-35B-A3B-GGUF` strips and `unsloth/Qwen3.6-35B-A3B-MTP-GGUF`
+  keeps (`blk.40.nextn.*`, checked in the file header). Same quant, +0.5 GB.
+- **Flash attention on, mmap off (`load-mode = none`), `ubatch-size = 1024`**
+  for every model: what all of the guide's measured runs use; 1024 was its
+  best MTP result. Without mmap the 94 GB model isn't also held in the page
+  cache in the same RAM.
+- **Power:** what tuned's `accelerator-performance` profile sets, set
+  directly: `performance` CPU governor, the firmware's `performance` ACPI
+  platform profile when offered, `vm.swappiness = 10`. Not the tuned daemon
+  itself (Python, and its default power-profiles support asserts upower; D8).
+
+Measure on ai-fw before deciding (`llama-bench` and a real agent task):
+
+- **MTP for Qwen3.8-Flash-Next** (Unsloth ships `MTP/mtp-*.gguf` drafts): the
+  guide saw MTP make Qwen3-Next, the same hybrid design, 79% *slower* on
+  Vulkan while it helped on ROCm; one unverified community report shows +106%.
+- **ROCm for prompt processing:** the guide has ROCm 25–34% ahead at 16K
+  prompts, Vulkan 18–30% ahead on generation. Agent work sends long prompts,
+  so this may reverse D2 for one model.
+- **zram** (D11), **q8_0 KV cache** (memory, not speed), **parallel slots**
+  (left at auto), **thread count**.
+
+Not adopted:
+
+- **`amdgpu.cwsr_enable=0`:** the guide's workaround for a ROCm MES hang; ai-fw
+  runs Vulkan.
+- **`amd_iommu=off`:** the guide keeps it for one benchmark profile only and
+  warns against it otherwise.
+- **`amdgpu.gttsize`:** deprecated; `ttm.pages_limit` already sets the limit
+  (112 GiB of the 127 GiB).
