@@ -10,7 +10,7 @@
   # ============================================================
   # Networking
   # ============================================================
-  networking.hostName = "bc-llm";
+  networking.hostName = "ai-fw";
   networking.useDHCP = lib.mkDefault true;
 
   # ============================================================
@@ -72,17 +72,25 @@
   services.journald.settings.Journal.Storage = "persistent";
 
   # Builds whatever flake.lock is on main; it never updates the lock itself.
-  # The weekly lock-update PR (.github/workflows/flake.yml) is what brings in
-  # new packages.
+  # The daily lock bump in .github/workflows/flake.yml is what brings in new
+  # packages, so this follows nixos-unstable about a day behind.
   system.autoUpgrade = {
     enable = true;
-    flake = "github:blconway/nixos-config#bc-llm";
+    flake = "github:blconway/nixos-config#ai-fw";
     # Must start inside rebootWindow: when the kernel changes, an upgrade that
     # runs outside the window neither switches nor reboots.
     dates = "04:10";
     allowReboot = true;
     rebootWindow = { lower = "04:00"; upper = "06:00"; };
   };
+
+  # Unattended daily upgrades on a headless box: a new entry that fails to
+  # boot 3 times is skipped in favour of the previous one, and 10 generations
+  # (about 10 days) stay available to roll back to. A boot counts as good once
+  # boot-complete.target is reached, which is early: this catches kernel and
+  # boot failures, not a broken llama-server.
+  boot.loader.systemd-boot.bootCounting.enable = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
 
   system.stateVersion = "25.11";
 }
