@@ -27,12 +27,15 @@
       nixos-hardware,
       ...
     }:
+    let
+      # Each host's platform comes from nixpkgs.hostPlatform in its
+      # hardware-configuration.nix; this is only for the flake's own outputs.
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+    in
     {
 
       # ── Workstation ─────────────────────────────────────────
       nixosConfigurations.bc-ws = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-
         modules = [
           ./hosts/bc-ws
 
@@ -53,8 +56,6 @@
 
       # ── LLM Server (Framework Desktop) ─────────────────────
       nixosConfigurations.ai-fw = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-
         modules = [
           ./hosts/ai-fw
 
@@ -62,5 +63,21 @@
           # No Home Manager: nothing on this box is configured per user.
         ];
       };
+
+      # `nix flake check` evaluates both hosts and the invariants; without
+      # --no-build it also builds each host's system.
+      checks.x86_64-linux =
+        nixpkgs.lib.mapAttrs' (
+          name: host: nixpkgs.lib.nameValuePair "nixos-${name}" host.config.system.build.toplevel
+        ) self.nixosConfigurations
+        // {
+          invariants = import ./tests/invariants.nix {
+            inherit pkgs;
+            hosts = self.nixosConfigurations;
+          };
+        };
+
+      # `nix fmt` formats every .nix file; CI runs it with --ci.
+      formatter.x86_64-linux = pkgs.nixfmt-tree;
     };
 }
