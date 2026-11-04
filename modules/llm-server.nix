@@ -1,56 +1,38 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
+let
+  # Models the llama-server router offers. A section name is what a client
+  # sends as "model"; keys are llama-server flags without the leading dashes.
+  # Files download from Hugging Face on a model's first load into
+  # /var/cache/llama-cpp.
+  modelsPreset = pkgs.writeText "llama-models.ini" (lib.generators.toINIWithGlobalSection { } {
+    globalSection = { version = 1; };
+    sections = {
+      # Fast default: ~22 GB, 3B active.
+      "qwen3.6-35b-a3b" = {
+        hf-repo = "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL";
+      };
+      # Strongest that fits: ~94 GB, 6B active, thinks by default.
+      "qwen3.8-flash-next" = {
+        hf-repo = "unsloth/Qwen3.8-Flash-Next-GGUF:UD-IQ4_XS";
+      };
+    };
+  });
+in
 {
   # ============================================================
-  # Ollama — LLM inference engine
+  # llama.cpp — OpenAI-compatible inference endpoint
   # ============================================================
-  services.ollama = {
+  services.llama-cpp = {
     enable = true;
-    package = pkgs.ollama-vulkan;  # Vulkan outperforms ROCm on Strix Halo
-    host = "0.0.0.0";
-    port = 11434;
-    openFirewall = false;          # only accessible via tailnet (trustedInterfaces)
-    loadModels = [
-      "qwen3:32b-q8_0"
-    ];
-    # To switch to ROCm, uncomment below and comment out ollama-vulkan above:
-    # package = pkgs.ollama-rocm;
-    # rocmOverrideGfx = "11.5.0";
-  };
-
-  # ============================================================
-  # Open WebUI — chat interface for LLMs
-  # ============================================================
-  services.open-webui = {
-    enable = true;
-    host = "0.0.0.0";
-    port = 8080;
-    openFirewall = false;
-    environment = {
-      OLLAMA_BASE_URL = "http://127.0.0.1:11434";
-      WEBUI_AUTH = "True";
-      ENABLE_RAG_WEB_SEARCH = "True";
-      RAG_WEB_SEARCH_ENGINE = "searxng";
-      SEARXNG_QUERY_URL = "http://127.0.0.1:8888/search?q=<query>&format=json";
-    };
-  };
-
-  # ============================================================
-  # SearXNG — meta-search engine for RAG web search
-  # ============================================================
-  services.searx = {
-    enable = true;
-    redisCreateLocally = true;
+    package = pkgs.llama-cpp-vulkan;  # Vulkan (RADV) beats ROCm on token generation on Strix Halo
     settings = {
-      server = {
-        port = 8888;
-        bind_address = "127.0.0.1";
-        secret_key = "@SEARX_SECRET_KEY@";
-      };
-      search = {
-        formats = [ "html" "json" ];
-      };
+      host = "0.0.0.0";  # tailnet only: the port is not opened on the LAN
+      port = 8080;
+      models-preset = "${modelsPreset}";
+      # Both models together (~116 GB) don't fit beside a KV cache, so the
+      # router unloads one to load the other.
+      models-max = 1;
     };
-    environmentFile = "/etc/secrets/searx-env";
   };
 }
