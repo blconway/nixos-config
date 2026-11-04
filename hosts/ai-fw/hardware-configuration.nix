@@ -34,9 +34,11 @@
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/3402-2528";
     fsType = "vfat";
+    # Root-only, as on bc-ws: bootctl refuses to call a world-readable
+    # random seed safe (seen in the installer's VM test, D12).
     options = [
-      "fmask=0022"
-      "dmask=0022"
+      "fmask=0077"
+      "dmask=0077"
     ];
   };
 

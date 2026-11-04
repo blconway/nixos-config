@@ -11,6 +11,7 @@
 - D9. Repo structure: explicit hosts and plain modules, no framework
 - D10. bc-ws matches Bazzite DX NVIDIA, on NixOS
 - D11. What was borrowed from other NixOS configs, and what was not
+- D12. ai-fw installs from its own ISO; root has no password
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -264,3 +265,26 @@ Not borrowed:
 - **sops-nix/agenix, colmena/deploy-rs, monitoring stacks, host registries,
   haumea, llama-swap, custom ISOs, treefmt-nix, git-hooks.nix:** secrets we
   don't have, many-machine tooling, or a new input (D9).
+
+## D12. ai-fw installs from its own ISO; root has no password (2026-11-04)
+
+`nixosConfigurations.ai-fw-installer` is the NixOS minimal installer plus
+`install-ai-fw`. Built on demand (`nix build .#ai-fw-installer-iso`), never
+published; CI evaluates it on every PR but doesn't build the ~1.5 GB image.
+This narrows D11's "no custom ISOs", which was about Wimpress-style daily
+published images: one image built when needed replaces seven hand-typed steps,
+two of them destructive, with one command run over SSH from bc-ws.
+
+Everything that must match ai-fw comes from ai-fw's own config, so the two
+can't drift: the root and boot filesystem UUIDs (formatted to match
+`hardware-configuration.nix`), the flake it installs
+(`system.autoUpgrade.flake`), the SSH keys root accepts in the installer, and
+the kernel. The script refuses to touch the disk until its name is typed back.
+
+Root on ai-fw has no password, as on Ubuntu or Fedora: the config sets none
+and the installer runs `nixos-install --no-root-passwd`, so `/etc/shadow`
+holds a locked marker rather than a hash. Nothing random is generated. The way
+in is `brandon` (SSH key, or the console) plus `sudo` with `brandon`'s
+password; if that password is lost, boot the installer and reset it with
+`nixos-enter`. `tests/invariants.nix` fails if a root password is ever
+configured. bc-ws is unchanged: its root keeps whatever was set at install.

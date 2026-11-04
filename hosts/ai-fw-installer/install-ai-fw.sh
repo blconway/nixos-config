@@ -1,5 +1,5 @@
 # install-ai-fw <disk>: erase <disk> and install ai-fw from GitHub.
-# ROOT_UUID, BOOT_ID and FLAKE are set above this line from ai-fw's own config
+# ROOT_UUID, BOOT_ID, BOOT_OPTS and FLAKE are set above this line from ai-fw's own config
 # (hosts/ai-fw-installer/default.nix), so the new filesystems match
 # hosts/ai-fw/hardware-configuration.nix.
 
@@ -10,7 +10,10 @@ die() {
 
 [ "$(id -u)" -eq 0 ] || die "run as root"
 disk=${1:-}
-[ -n "$disk" ] || die "usage: install-ai-fw /dev/nvme0n1"
+[ -n "$disk" ] || die "usage: install-ai-fw /dev/nvme0n1 [flake]"
+# A second argument installs another flake, e.g. a branch before it merges:
+# github:blconway/nixos-config/<branch>#ai-fw
+FLAKE=${2:-$FLAKE}
 [ -b "$disk" ] || die "$disk is not a block device"
 
 case "$disk" in
@@ -46,7 +49,7 @@ udevadm settle
 
 echo "== mounting"
 mount "${part}2" /mnt
-mount --mkdir "${part}1" /mnt/boot
+mount --mkdir -o "$BOOT_OPTS" "${part}1" /mnt/boot
 
 echo "== installing $FLAKE"
 nixos-install --no-root-passwd --no-channel-copy --flake "$FLAKE"

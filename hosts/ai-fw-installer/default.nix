@@ -24,6 +24,7 @@ let
     text = ''
       ROOT_UUID=${lib.escapeShellArg (uuidOf "/")}
       BOOT_ID=${lib.escapeShellArg (lib.replaceStrings [ "-" ] [ "" ] (uuidOf "/boot"))}
+      BOOT_OPTS=${lib.escapeShellArg (lib.concatStringsSep "," t.fileSystems."/boot".options)}
       FLAKE=${lib.escapeShellArg t.system.autoUpgrade.flake}
     ''
     + builtins.readFile ./install-ai-fw.sh;
@@ -33,6 +34,7 @@ in
   imports = [ (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix") ];
 
   nixpkgs.hostPlatform = "x86_64-linux";
+  image.baseName = lib.mkForce "ai-fw-installer-${t.system.nixos.label}";
 
   # The kernel ai-fw itself runs, so its NIC and NVMe are surely supported.
   # The minimal installer's ZFS support doesn't build for the latest kernel.
