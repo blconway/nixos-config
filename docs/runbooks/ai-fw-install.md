@@ -76,7 +76,7 @@ address until Tailscale is up.
    under `/var/cache/private/llama-cpp` (`sudo find` them), for example:
 
    ```sh
-   sudo llama-bench -m <qwen3.8 file> -fa 1 -mmp 0 -ub 1024 -p 512,16384 -n 128
+   sudo llama-bench -m <qwen3.8 file> -fa on -lm none,mmap -ub 512,1024 -p 512,16384 -n 128
    ```
 
    Then try Flash-Next with its MTP draft in a real agent task, and record the
