@@ -5,7 +5,13 @@
   # Boot
   # ============================================================
   boot.loader.systemd-boot.enable = true;
-  boot.loader.systemd-boot.configurationLimit = lib.mkDefault 3;
+  # Both hosts upgrade daily without a person in the loop: a new entry that
+  # fails to boot 3 times is skipped in favour of the previous one, and 10
+  # generations (about 10 days) stay available to roll back to. A boot counts
+  # as good once boot-complete.target is reached, which is early: this catches
+  # kernel and boot failures, not a service that starts and misbehaves.
+  boot.loader.systemd-boot.bootCounting.enable = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
 

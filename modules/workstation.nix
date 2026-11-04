@@ -14,6 +14,9 @@
     enableSSHSupport = true;
   };
 
+  # Firmware updates from LVFS (`fwupdmgr update`).
+  services.fwupd.enable = true;
+
   # ============================================================
   # Packages
   # ============================================================

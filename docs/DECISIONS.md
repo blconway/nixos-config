@@ -9,6 +9,7 @@
 - D7. This repo is public
 - D8. ai-fw carries only what a headless endpoint needs
 - D9. Repo structure: explicit hosts and plain modules, no framework
+- D10. bc-ws matches Bazzite DX NVIDIA, on NixOS
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -68,9 +69,9 @@ covered without a person in the loop:
 - the workflow evaluates and builds every host on the new lock and pushes
   nothing if one fails, so renamed options and broken packages never reach
   the box;
-- ai-fw has systemd-boot boot counting, so an entry that fails to boot 3
+- both hosts have systemd-boot boot counting, so an entry that fails to boot 3
   times is skipped;
-- ai-fw keeps 10 generations (the GC keeps exactly as many as the boot menu);
+- both hosts keep 10 generations (the GC keeps exactly as many as the boot menu);
 - every lock it ran is a commit on main, so a bad one can be reverted or
   bisected.
 
@@ -152,3 +153,50 @@ property-driven "broadcast-and-gate" module activation. Each solves wiring or
 policy across many machines or platforms; with two hosts they add an input or
 a layer of indirection, and what a host runs stops being readable from its own
 file. Revisit at roughly four or more hosts, or a second platform (darwin).
+
+## D10. bc-ws matches Bazzite DX NVIDIA, on NixOS (2026-11-04)
+
+bc-ws is meant to run the same workload as a Bazzite DX NVIDIA install:
+gaming plus development. The reference is what the images actually install
+(ublue-os/bazzite README; ublue-os/bazzite-dx `build_files/20-install-apps.sh`
+and `40-services.sh`), not a feature list from memory.
+
+Added, as two role modules imported by bc-ws (D9):
+
+- `modules/gaming.nix`: Steam with the Gamescope session, Steam Input on
+  Wayland (extest), Proton-GE and protontricks; Gamescope; GameMode; xone and
+  xpadneo controller drivers; Input Remapper; OBS with the Vulkan capture
+  plugin; MangoHud, vkBasalt, ProtonUp-Qt.
+- `modules/dev.nix`: Docker and Podman (both, no Podman docker shim, as in
+  DX), Distrobox, libvirt with virt-manager, bcc and bpftrace/bpftop, sysprof,
+  usbmuxd, android-tools, ccache, flatpak-builder, numactl, waypipe, restic,
+  rclone, podman-tui, and nix-ld.
+- `modules/nvidia.nix`: nvidia-container-toolkit, so containers get the GPU.
+- `modules/workstation.nix`: fwupd.
+
+Left out on purpose:
+
+- **Waydroid:** with the proprietary NVIDIA driver it falls back to software
+  rendering (WayDroid-ATV GPU FAQ), so on this box it would be slow.
+- **ROCm** (DX installs it): AMD GPUs only.
+- **Incus:** needs the nftables firewall backend, a change to the whole
+  firewall for a tool nobody asked for. Add with `networking.nftables.enable`.
+- **OpenRazer:** no Razer hardware is known on bc-ws.
+- **sched-ext schedulers:** Bazzite supports them but leaves them off.
+- **Bazzite's kernel, or CachyOS's:** `linuxPackages_latest` is current, and
+  either would add a flake input (D9).
+- **Homebrew:** nix-ld covers running prebuilt binaries; packages come from
+  nixpkgs.
+- **Bazzite's preinstalled Flatpak apps** (OBS aside): personal app choices,
+  installable through Bazaar.
+
+Upgrades: bc-ws builds main's lock daily, never updates the lock itself, and
+uses `operation = "boot"`. Switching a running session to a new NVIDIA driver
+leaves the old kernel module loaded, which breaks GL and CUDA until a reboot,
+so staging for the next boot is the same outcome without the broken window;
+it is also how Bazzite applies updates. `update` pulls `/etc/nixos` and
+switches immediately when you want it now.
+
+NVIDIA branch: `latest` (615.x, NVIDIA's new-feature branch) rather than
+nixpkgs `production` (595.x on 2026-11-04). Revisit if a driver regression
+bites; `production` is one word in `modules/nvidia.nix`.

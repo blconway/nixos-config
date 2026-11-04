@@ -7,7 +7,9 @@
   home.homeDirectory = "/home/brandon";
   home.stateVersion = "25.11";
 
-  programs.fish.shellAliases.update = "sudo nix flake update --flake /etc/nixos && rebuild";
+  # Takes main (including CI's daily flake.lock) into /etc/nixos and switches
+  # now. The lock is never updated here; that happens in CI (D5).
+  programs.fish.shellAliases.update = "git -C /etc/nixos pull --ff-only && rebuild";
 
   # ============================================================
   # Flatpak packages

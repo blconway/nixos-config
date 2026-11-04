@@ -15,4 +15,8 @@
     nvidiaSettings = true;
     powerManagement.enable = true;
   };
+
+  # GPU access in Docker and Podman containers through CDI:
+  # `docker run --device nvidia.com/gpu=all ...`
+  hardware.nvidia-container-toolkit.enable = true;
 }
