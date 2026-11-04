@@ -17,6 +17,22 @@ let
   invariants = [
     # ai-fw
     {
+      d = "D12";
+      what = "ai-fw's root has no password; brandon and sudo are the way in";
+      ok =
+        let
+          r = ai.users.users.root;
+        in
+        r.hashedPassword == null
+        && r.password == null
+        && r.hashedPasswordFile == null
+        && r.initialPassword == null
+        && lib.elem r.initialHashedPassword [
+          null
+          "!"
+        ];
+    }
+    {
       d = "D1/D3";
       what = "ai-fw opens only SSH on the LAN";
       ok = ai.networking.firewall.allowedTCPPorts == [ 22 ];
