@@ -6,6 +6,9 @@
 - D4. Models: Qwen3.6-35B-A3B and Qwen3.8-Flash-Next, not Qwen3-Coder-Next
 - D5. Follow nixos-unstable: daily lock bump straight to main
 - D6. bc-llm renamed to ai-fw
+- D7. This repo is public
+- D8. ai-fw carries only what a headless endpoint needs
+- D9. Repo structure: explicit hosts and plain modules, no framework
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -62,8 +65,9 @@ The first version of this decision was a weekly lock PR merged by hand. It
 was replaced the same day by an unattended daily bump, because recovery is
 covered without a person in the loop:
 
-- the workflow evaluates every host on the new lock and pushes nothing if one
-  fails, so renamed or removed options never reach the box;
+- the workflow evaluates and builds every host on the new lock and pushes
+  nothing if one fails, so renamed options and broken packages never reach
+  the box;
 - ai-fw has systemd-boot boot counting, so an entry that fails to boot 3
   times is skipped;
 - ai-fw keeps 10 generations (the GC keeps exactly as many as the boot menu);
@@ -86,7 +90,65 @@ carried over: the Tailscale/MagicDNS name follows the OS hostname on
 Tailscale's next start only if it wasn't set by hand in the admin console;
 clients and SSH config that say `bc-llm` must change to `ai-fw`.
 
-`nixosConfigurations.bc-llm` stays as an alias of `ai-fw` because the machine
-still has hostname `bc-llm` until it switches, and `update` (`nh os switch`)
-picks the config named after the current hostname. Remove the alias once
-`hostname` on the machine prints `ai-fw`.
+A `nixosConfigurations.bc-llm` alias was added for an in-place switch (`nh os
+switch` picks the config named after the current hostname) and removed the
+same day: the machine is being reinstalled clean as `ai-fw`
+(docs/runbooks/ai-fw-install.md), so nothing ever runs as `bc-llm` again.
+
+## D7. This repo is public (2026-11-04)
+
+ai-fw's auto-upgrade fetches `github:blconway/nixos-config`, which a private
+repo answers with 404 unless the box holds a GitHub credential. Made public
+rather than adding a deploy key: nothing to provision or rotate on the box,
+and a clean install clones over plain HTTPS.
+
+What being public exposes, checked across all 23 commits before the switch:
+name, noreply email, SSH public keys (already public at
+github.com/blconway.keys), hostnames, disk UUIDs and the network design (D3).
+No passwords, tokens or private keys. Keep it that way: secrets live outside
+the repo and outside the Nix store (as `/etc/secrets/searx-env` did).
+
+If it ever goes private again, the auto-upgrade breaks silently. Switch
+`system.autoUpgrade.flake` to `git+ssh://git@github.com/blconway/nixos-config#ai-fw`
+with a read-only deploy key for root and GitHub's host key in
+`programs.ssh.knownHosts`.
+
+## D8. ai-fw carries only what a headless endpoint needs (2026-11-04)
+
+Removed from ai-fw, and why each was safe to drop:
+
+- **Home Manager**, and with it claude-code, fish, starship, bat, fzf, zoxide,
+  eza, direnv, git config, btop and ncdu: nothing on the box is configured per
+  user. `brandon` gets bash.
+- **fail2ban:** SSH is key-only, so there is no password to guess.
+- **gnupg agent with SSH support, `nh`, `allowUnfree`:** workstation settings.
+  They moved from `common.nix` to `modules/workstation.nix`, imported by bc-ws
+  only; bc-ws's system derivation is byte-identical before and after. ai-fw
+  evaluates without `allowUnfree`, so it uses no unfree packages.
+- **`/etc/nixos` clone:** `update` is `sudo nixos-rebuild switch` from the
+  same `github:` flake the nightly upgrade uses, so there is one source of
+  what the box runs.
+- **Docs, default packages (perl, rsync, strace), logrotate, udisks2, XDG
+  bits:** `profiles/minimal.nix` from nixpkgs.
+
+Measured on the 2026-11-03 lock: the system closure went from 4.69 GiB (874
+store paths) to 4.02 GiB (602). Most of what is left is the kernel, firmware
+and Mesa.
+
+Kept on purpose: `radeontop`, `tmux`, `llama-cpp-vulkan` (for `llama-bench`,
+D4), persistent journal, zram, port 22 on the LAN (the way in if Tailscale
+breaks).
+
+Rejected: `profiles/headless.nix`. It adds `nomodeset`, which disables the
+amdgpu driver llama.cpp runs on, and turns off the tty1 console, the last way
+in when the network is down.
+
+## D9. Explicit hosts and plain modules, no framework (2026-11-04)
+
+Two hosts, each `hosts/<host>/default.nix` importing the modules it uses
+(`common`, a role like `workstation`, a service like `llm-server`). Considered
+and not adopted: flake-parts, the dendritic pattern, numtide/blueprint, and
+property-driven "broadcast-and-gate" module activation. Each solves wiring or
+policy across many machines or platforms; with two hosts they add an input or
+a layer of indirection, and what a host runs stops being readable from its own
+file. Revisit at roughly four or more hosts, or a second platform (darwin).
