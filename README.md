@@ -1,6 +1,7 @@
 # nixos-config
 
-NixOS flake for two machines: `bc-ws` (GNOME workstation, NVIDIA) and `ai-fw`
+NixOS flake for two machines: `bc-ws` (GNOME gaming and development
+workstation, NVIDIA, roughly Bazzite DX) and `ai-fw`
 (Framework Desktop, Ryzen AI Max 300, run as a headless llama.cpp endpoint).
 Both follow nixos-unstable.
 
@@ -20,8 +21,9 @@ ai-fw has no local clone: everything it runs comes from `main`.
 
 New packages arrive only through `flake.lock`. The `flake` workflow updates
 it daily at 10:00 UTC and commits it to `main` once every host builds, so
-ai-fw runs nixos-unstable about a day behind. bc-ws picks it up on its next
-`rebuild`.
+ai-fw runs nixos-unstable about a day behind. bc-ws builds the same lock
+daily and stages it for its next reboot (`update` there pulls `/etc/nixos`
+and switches now).
 
 ## When it breaks
 

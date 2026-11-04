@@ -8,6 +8,8 @@
     ../../modules/nvidia.nix
     ../../modules/gnome.nix
     ../../modules/audio.nix
+    ../../modules/gaming.nix
+    ../../modules/dev.nix
   ];
 
   # ============================================================
@@ -22,9 +24,6 @@
   # ============================================================
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = false;
-
-  # udev rules for Steam controllers, Valve hardware, and gaming peripherals.
-  hardware.steam-hardware.enable = true;
 
   # OpenRGB — controls LEDs on Gigabyte motherboards, GPUs, RAM, etc.
   services.hardware.openrgb.enable = true;
@@ -66,14 +65,15 @@
   # ============================================================
   # Auto-upgrade
   # ============================================================
+  # Builds main's flake.lock, which CI bumps daily (D5); nothing updates the
+  # lock on this machine, so it never drifts from main. "boot" stages the new
+  # generation for the next reboot instead of switching under a running
+  # session: switching to a new NVIDIA driver while the old kernel module is
+  # loaded breaks GL and CUDA ("API mismatch") until a reboot anyway.
   system.autoUpgrade = {
     enable = true;
-    flake = "/etc/nixos#bc-ws";
-    flags = [
-      "--update-input" "nixpkgs"
-      "--update-input" "home-manager"
-      "--update-input" "nix-flatpak"
-    ];
+    flake = "github:blconway/nixos-config#bc-ws";
+    operation = "boot";
     dates = "daily";
     allowReboot = false;
   };

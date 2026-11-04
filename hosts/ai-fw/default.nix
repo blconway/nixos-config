@@ -99,13 +99,5 @@
     rebootWindow = { lower = "04:00"; upper = "06:00"; };
   };
 
-  # Unattended daily upgrades on a headless box: a new entry that fails to
-  # boot 3 times is skipped in favour of the previous one, and 10 generations
-  # (about 10 days) stay available to roll back to. A boot counts as good once
-  # boot-complete.target is reached, which is early: this catches kernel and
-  # boot failures, not a broken llama-server.
-  boot.loader.systemd-boot.bootCounting.enable = true;
-  boot.loader.systemd-boot.configurationLimit = 10;
-
   system.stateVersion = "25.11";
 }
