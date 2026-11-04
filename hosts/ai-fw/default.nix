@@ -1,4 +1,10 @@
-{ config, pkgs, lib, modulesPath, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  modulesPath,
+  ...
+}:
 
 # Headless inference endpoint, kept to what that needs (docs/DECISIONS.md, D8).
 {
@@ -16,14 +22,13 @@
   # Packages
   # ============================================================
   environment.systemPackages = with pkgs; [
-    llama-cpp-vulkan  # llama-bench, to measure models on this box
-    radeontop         # iGPU utilization
-    tmux              # long downloads and benchmarks over SSH
+    llama-cpp-vulkan # llama-bench, to measure models on this box
+    radeontop # iGPU utilization
+    tmux # long downloads and benchmarks over SSH
   ];
 
   # Deploy main now, from the same flake the nightly upgrade uses.
-  environment.shellAliases.update =
-    "sudo nixos-rebuild switch --refresh --flake ${config.system.autoUpgrade.flake}";
+  environment.shellAliases.update = "sudo nixos-rebuild switch --refresh --flake ${config.system.autoUpgrade.flake}";
 
   # ============================================================
   # Networking
@@ -63,13 +68,13 @@
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 22 ];
-    trustedInterfaces = [ "tailscale0" ];  # all ports open on tailnet
+    trustedInterfaces = [ "tailscale0" ]; # all ports open on tailnet
   };
 
   # ============================================================
   # AMD GPU — Strix Halo iGPU (Radeon 8060S, RDNA 3.5, gfx1151)
   # ============================================================
-  hardware.graphics.enable = true;  # Mesa RADV, used by llama.cpp's Vulkan backend
+  hardware.graphics.enable = true; # Mesa RADV, used by llama.cpp's Vulkan backend
 
   # Let the iGPU map up to 112 GiB as GTT (unified memory) so the ~94 GB model
   # plus its KV cache fits. Assumes the 128 GB board; lower it on a 64 GB one.
@@ -96,7 +101,10 @@
     # runs outside the window neither switches nor reboots.
     dates = "04:10";
     allowReboot = true;
-    rebootWindow = { lower = "04:00"; upper = "06:00"; };
+    rebootWindow = {
+      lower = "04:00";
+      upper = "06:00";
+    };
   };
 
   system.stateVersion = "25.11";

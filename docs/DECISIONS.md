@@ -10,6 +10,7 @@
 - D8. ai-fw carries only what a headless endpoint needs
 - D9. Repo structure: explicit hosts and plain modules, no framework
 - D10. bc-ws matches Bazzite DX NVIDIA, on NixOS
+- D11. What was borrowed from other NixOS configs, and what was not
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -206,3 +207,60 @@ switches immediately when you want it now.
 NVIDIA branch: `latest` (615.x, NVIDIA's new-feature branch) rather than
 nixpkgs `production` (595.x on 2026-11-04). Revisit if a driver regression
 bites; `production` is one word in `modules/nvidia.nix`.
+
+## D11. Borrowed from other NixOS configs, and what was not (2026-11-04)
+
+Surveyed: wimpysworld/nix-config (972169f, whose two Framework Desktops run
+llama.cpp on Vulkan like ai-fw), ryan4yin/nix-config (c4a00e5),
+Misterio77/nix-starter-configs (fe4c4b1), numtide/blueprint (2bf1235),
+mightyiam/dendritic (6c76240). Each claim below was checked against our
+pinned nixpkgs, llama.cpp 0.8.0 or kernel source before it was used.
+
+Borrowed:
+
+- **`tests/invariants.nix`** (ryan4yin's eval tests, blueprint's `checks`
+  layout): `nix flake check` fails, naming the decision, if an edit undoes a
+  setting D1–D10 depend on.
+- **`checks` and `formatter` outputs** (blueprint, starter configs):
+  `nix flake check` replaced `.github/eval-hosts.sh`; `nix fmt` runs
+  nixfmt-tree. One commit reformatted the repo with no change to either
+  host's derivation.
+- **Model-card sampling defaults** (Wimpress sets per-model samplers):
+  llama-server's own defaults (top-k 40, min-p 0.05) are not what Qwen
+  recommends, and OpenAI-style clients rarely send those two.
+- **`llama-cpp-warmup`** (Wimpress pre-downloads models): a oneshot that asks
+  each model "hi" through llama-server's own downloader. It adds only curl.
+  Not verified: whether a request during a long download waits or returns
+  5xx; curl retries for about 8 hours either way.
+- **Dependabot for the pinned Actions** (Wimpress).
+- **Closure diff in each lock commit** (ryan4yin runs it by hand before
+  deploying).
+- **No `system =` and no nix-channel** (starter configs): the platform comes
+  from `nixpkgs.hostPlatform`; both hosts' derivations were identical without
+  `system =`.
+
+Measure on ai-fw before changing (not adopted yet):
+
+- **zram:** ryan4yin saw zram deadlock as a model load neared physical RAM;
+  on ai-fw the GPU's memory is that RAM. Load the 94 GB model and watch
+  `zramctl` and `/proc/pressure/memory`.
+- **mmap:** Wimpress turns it off on Strix Halo (`--load-mode none` in 0.8.0;
+  their README's `--mmap 0` no longer exists). Compare with `llama-bench`.
+
+Not borrowed:
+
+- **`amdgpu.gpu_recovery=1`:** the default `-1` already enables recovery on
+  everything but GCN 1.0 chips (`amdgpu_device_should_recover_gpu`).
+- **"Dirty Frag" module blacklist (esp4, esp6, rxrpc):** fixed in the 7.0
+  stable releases in May 2026; ai-fw runs 7.3.
+- **journald size cap:** journald already caps itself at 10% of the disk or
+  4 GB.
+- **disko and nixos-anywhere:** a one-command install, for one flake input;
+  the runbook covers a once-off install. Revisit if reinstalls become routine.
+- **`programs.gamescope.capSysNice`, `split_lock_mitigate`:** capSysNice stays at
+  the nixpkgs default until a game needs it; split_lock_mitigate is
+  Intel-only, and bc-ws is AMD.
+- **Kernel hardening sysctls:** against D8 for little gain on a tailnet box.
+- **sops-nix/agenix, colmena/deploy-rs, monitoring stacks, host registries,
+  haumea, llama-swap, custom ISOs, treefmt-nix, git-hooks.nix:** secrets we
+  don't have, many-machine tooling, or a new input (D9).

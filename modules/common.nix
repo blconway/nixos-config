@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # ============================================================
@@ -56,7 +61,14 @@
   # ============================================================
   # Nix settings
   # ============================================================
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
+
+  # Flakes only: no nix-channel, so `<nixpkgs>` and `nixpkgs#` both mean the
+  # nixpkgs this flake pinned.
+  nix.channel.enable = false;
 
   # Deprioritize the nix daemon so background builds don't stutter
   # audio or make the desktop laggy.

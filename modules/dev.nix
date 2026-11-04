@@ -17,7 +17,10 @@
   programs.virt-manager.enable = true;
 
   # Membership in docker is root-equivalent on this machine.
-  users.users.brandon.extraGroups = [ "docker" "libvirtd" ];
+  users.users.brandon.extraGroups = [
+    "docker"
+    "libvirtd"
+  ];
 
   # ============================================================
   # Running software that isn't packaged for Nix
@@ -32,7 +35,7 @@
   # ============================================================
   programs.bcc.enable = true;
   services.sysprof.enable = true;
-  services.usbmuxd.enable = true;  # iOS devices over USB
+  services.usbmuxd.enable = true; # iOS devices over USB
 
   environment.systemPackages = with pkgs; [
     distrobox

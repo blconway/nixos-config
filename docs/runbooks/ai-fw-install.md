@@ -70,11 +70,13 @@ address until Tailscale is up.
    - `cat /sys/class/drm/card*/device/mem_info_gtt_total` prints `120259084288` (112 GiB)
    - `systemctl status llama-cpp` is active
    - `systemctl list-timers nixos-upgrade` shows the next run at 04:10
-3. Load each model once to download it (the second is ~94 GB):
+3. The models download by themselves: `llama-cpp-warmup` starts at boot and
+   fetches both (~116 GB), then asks each one "hi". Follow it, and expect it
+   to finish as `inactive (dead)` with `status=0/SUCCESS`:
 
    ```sh
-   curl http://localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{"model":"qwen3.6-35b-a3b","messages":[{"role":"user","content":"hi"}]}'
-   curl http://localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{"model":"qwen3.8-flash-next","messages":[{"role":"user","content":"hi"}]}'
+   journalctl -fu llama-cpp-warmup
+   systemctl status llama-cpp-warmup
    ```
 
 4. From another tailnet device: `curl http://ai-fw:8080/v1/models`.

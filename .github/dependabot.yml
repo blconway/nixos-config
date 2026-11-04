@@ -1,0 +1,8 @@
+# Keeps the commit-pinned Actions in .github/workflows current: a weekly PR
+# per update, which the flake workflow checks like any other PR.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

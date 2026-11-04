@@ -18,40 +18,66 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
   };
 
-  outputs = { self, nixpkgs, home-manager, nix-flatpak, nixos-hardware, ... }: {
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      nix-flatpak,
+      nixos-hardware,
+      ...
+    }:
+    let
+      # Each host's platform comes from nixpkgs.hostPlatform in its
+      # hardware-configuration.nix; this is only for the flake's own outputs.
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+    in
+    {
 
-    # ── Workstation ─────────────────────────────────────────
-    nixosConfigurations.bc-ws = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
+      # ── Workstation ─────────────────────────────────────────
+      nixosConfigurations.bc-ws = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./hosts/bc-ws
 
-      modules = [
-        ./hosts/bc-ws
+          nix-flatpak.nixosModules.nix-flatpak
 
-        nix-flatpak.nixosModules.nix-flatpak
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.backupFileExtension = "backup";
+            home-manager.sharedModules = [
+              nix-flatpak.homeManagerModules.nix-flatpak
+            ];
+            home-manager.users.brandon = import ./hosts/bc-ws/home.nix;
+          }
+        ];
+      };
 
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.sharedModules = [
-            nix-flatpak.homeManagerModules.nix-flatpak
-          ];
-          home-manager.users.brandon = import ./hosts/bc-ws/home.nix;
-        }
-      ];
+      # ── LLM Server (Framework Desktop) ─────────────────────
+      nixosConfigurations.ai-fw = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./hosts/ai-fw
+
+          nixos-hardware.nixosModules.framework-desktop-amd-ai-max-300-series
+          # No Home Manager: nothing on this box is configured per user.
+        ];
+      };
+
+      # `nix flake check` evaluates both hosts and the invariants; without
+      # --no-build it also builds each host's system.
+      checks.x86_64-linux =
+        nixpkgs.lib.mapAttrs' (
+          name: host: nixpkgs.lib.nameValuePair "nixos-${name}" host.config.system.build.toplevel
+        ) self.nixosConfigurations
+        // {
+          invariants = import ./tests/invariants.nix {
+            inherit pkgs;
+            hosts = self.nixosConfigurations;
+          };
+        };
+
+      # `nix fmt` formats every .nix file; CI runs it with --ci.
+      formatter.x86_64-linux = pkgs.nixfmt-tree;
     };
-
-    # ── LLM Server (Framework Desktop) ─────────────────────
-    nixosConfigurations.ai-fw = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-
-      modules = [
-        ./hosts/ai-fw
-
-        nixos-hardware.nixosModules.framework-desktop-amd-ai-max-300-series
-        # No Home Manager: nothing on this box is configured per user.
-      ];
-    };
-  };
 }
