@@ -32,18 +32,11 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   # ============================================================
-  # Shell & Security
+  # Security
   # ============================================================
-  programs.fish.enable = true;
-
   # sudo-rs — memory-safe Rust drop-in replacement for sudo.
   security.sudo.enable = false;
   security.sudo-rs.enable = true;
-
-  programs.gnupg.agent = {
-    enable = true;
-    enableSSHSupport = true;
-  };
 
   # ============================================================
   # Users
@@ -51,18 +44,8 @@
   users.users.brandon = {
     isNormalUser = true;
     description = "Brandon Conway";
-    shell = pkgs.fish;
     extraGroups = [ "wheel" ];
   };
-
-  # ============================================================
-  # Packages
-  # ============================================================
-  nixpkgs.config.allowUnfree = true;
-
-  environment.systemPackages = with pkgs; [
-    nh
-  ];
 
   # ============================================================
   # Nix settings

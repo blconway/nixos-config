@@ -1,5 +1,5 @@
-# Evaluates every host on each push and PR, and bumps flake.lock daily,
-# committing it straight to main once every host evaluates. ai-fw's
+# Evaluates and builds every host on each push and PR, and bumps flake.lock
+# daily, committing it straight to main once every host builds. ai-fw's
 # auto-upgrade builds whatever lock is on main at 04:10 Pacific, so this is
 # how it follows nixos-unstable (docs/DECISIONS.md, D5).
 name: flake
@@ -18,11 +18,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # One job per host so the PR check takes as long as the slowest host,
+        # not the sum. eval-hosts.sh still evaluates every host in the flake,
+        # so a host missing here is evaluated but not built.
+        host: [ai-fw, bc-ws]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b  # v31.11.3
       - name: Evaluate every host
         run: ./.github/eval-hosts.sh
+      - name: Build ${{ matrix.host }}
+        run: nix build --no-link .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel
 
   update-lock:
     if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
@@ -35,9 +44,14 @@ jobs:
       - name: Update flake.lock
         run: nix flake update
       # The push below uses GITHUB_TOKEN, which doesn't trigger the check job,
-      # so the new lock is evaluated here and nothing is pushed if it fails.
+      # so the new lock is checked here and nothing is pushed if it fails.
+      # ai-fw deploys it unattended, so building matters, not just evaluating.
       - name: Evaluate every host
         run: ./.github/eval-hosts.sh
+      - name: Build ai-fw
+        run: nix build --no-link .#nixosConfigurations.ai-fw.config.system.build.toplevel
+      - name: Build bc-ws
+        run: nix build --no-link .#nixosConfigurations.bc-ws.config.system.build.toplevel
       - name: Commit to main
         run: |
           if git diff --quiet flake.lock; then

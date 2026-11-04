@@ -50,20 +50,8 @@
         ./hosts/ai-fw
 
         nixos-hardware.nixosModules.framework-desktop-amd-ai-max-300-series
-
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.users.brandon = import ./hosts/ai-fw/home.nix;
-        }
+        # No Home Manager: nothing on this box is configured per user.
       ];
     };
-
-    # Old name of ai-fw, kept so the machine (still hostnamed bc-llm) can
-    # switch to the renamed config with `update`. Remove once it reports
-    # hostname ai-fw (docs/DECISIONS.md, D6).
-    nixosConfigurations.bc-llm = self.nixosConfigurations.ai-fw;
   };
 }

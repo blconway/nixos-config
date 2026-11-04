@@ -1,11 +1,29 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, modulesPath, ... }:
 
+# Headless inference endpoint, kept to what that needs (docs/DECISIONS.md, D8).
 {
   imports = [
     ./hardware-configuration.nix
     ../../modules/common.nix
     ../../modules/llm-server.nix
+    # Drops docs, default packages, logrotate, udisks2 and desktop XDG bits.
+    # Not profiles/headless.nix: it sets nomodeset (no amdgpu) and removes the
+    # tty1 console, the last way in if the network is down.
+    (modulesPath + "/profiles/minimal.nix")
   ];
+
+  # ============================================================
+  # Packages
+  # ============================================================
+  environment.systemPackages = with pkgs; [
+    llama-cpp-vulkan  # llama-bench, to measure models on this box
+    radeontop         # iGPU utilization
+    tmux              # long downloads and benchmarks over SSH
+  ];
+
+  # Deploy main now, from the same flake the nightly upgrade uses.
+  environment.shellAliases.update =
+    "sudo nixos-rebuild switch --refresh --flake ${config.system.autoUpgrade.flake}";
 
   # ============================================================
   # Networking
@@ -24,9 +42,6 @@
       PermitRootLogin = "no";
     };
   };
-
-  # Brute-force protection for SSH.
-  services.fail2ban.enable = true;
 
   # Copied from https://github.com/blconway.keys on 2026-11-04.
   users.users.brandon.openssh.authorizedKeys.keys = [

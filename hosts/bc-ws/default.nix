@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/common.nix
+    ../../modules/workstation.nix
     ../../modules/nvidia.nix
     ../../modules/gnome.nix
     ../../modules/audio.nix
