@@ -69,7 +69,7 @@
   # Auto-upgrade
   # ============================================================
   # Persist journal across reboots for debugging.
-  services.journald.storage = "persistent";
+  services.journald.settings.Journal.Storage = "persistent";
 
   # Builds whatever flake.lock is on main; it never updates the lock itself.
   # The weekly lock-update PR (.github/workflows/flake.yml) is what brings in
