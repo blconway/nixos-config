@@ -16,10 +16,10 @@
     gnome-calendar
     gnome-characters
     gnome-logs
-    epiphany          # GNOME Web
-    totem             # video player
-    yelp              # GNOME Help
-    geary             # email client
-    gnome-software    # replaced by Bazaar Flatpak
+    epiphany # GNOME Web
+    totem # video player
+    yelp # GNOME Help
+    geary # email client
+    gnome-software # replaced by Bazaar Flatpak
   ];
 }

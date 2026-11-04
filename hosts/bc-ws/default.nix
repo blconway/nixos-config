@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [
@@ -45,10 +50,12 @@
   services.printing.enable = true;
 
   services.flatpak.enable = true;
-  services.flatpak.remotes = [{
-    name = "flathub";
-    location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-  }];
+  services.flatpak.remotes = [
+    {
+      name = "flathub";
+      location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+    }
+  ];
 
   # ============================================================
   # Users (desktop-specific groups)

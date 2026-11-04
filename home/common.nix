@@ -38,8 +38,14 @@
   };
 
   programs.starship.enable = true;
-  programs.bat = { enable = true; config.theme = "TwoDark"; };
-  programs.fzf = { enable = true; defaultOptions = [ "--color=dark" ]; };
+  programs.bat = {
+    enable = true;
+    config.theme = "TwoDark";
+  };
+  programs.fzf = {
+    enable = true;
+    defaultOptions = [ "--color=dark" ];
+  };
   programs.zoxide.enable = true;
   programs.eza = {
     enable = true;
