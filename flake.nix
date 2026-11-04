@@ -43,11 +43,11 @@
     };
 
     # ── LLM Server (Framework Desktop) ─────────────────────
-    nixosConfigurations.bc-llm = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.ai-fw = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
 
       modules = [
-        ./hosts/bc-llm
+        ./hosts/ai-fw
 
         nixos-hardware.nixosModules.framework-desktop-amd-ai-max-300-series
 
@@ -56,9 +56,14 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "backup";
-          home-manager.users.brandon = import ./hosts/bc-llm/home.nix;
+          home-manager.users.brandon = import ./hosts/ai-fw/home.nix;
         }
       ];
     };
+
+    # Old name of ai-fw, kept so the machine (still hostnamed bc-llm) can
+    # switch to the renamed config with `update`. Remove once it reports
+    # hostname ai-fw (docs/DECISIONS.md, D6).
+    nixosConfigurations.bc-llm = self.nixosConfigurations.ai-fw;
   };
 }

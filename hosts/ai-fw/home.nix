@@ -14,5 +14,6 @@
     ncdu
     radeontop    # monitor iGPU utilization
     tmux         # persistent SSH sessions
+    llama-cpp-vulkan  # llama-bench and llama-cli, to measure models on this box
   ];
 }

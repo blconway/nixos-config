@@ -5,7 +5,7 @@
   # Boot
   # ============================================================
   boot.loader.systemd-boot.enable = true;
-  boot.loader.systemd-boot.configurationLimit = 3;
+  boot.loader.systemd-boot.configurationLimit = lib.mkDefault 3;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
@@ -77,13 +77,14 @@
     IOSchedulingPriority = lib.mkForce 7;
   };
 
-  # Keep the last 3 system generations, GC everything else weekly.
+  # Keep as many system generations as the boot menu shows, GC everything
+  # else weekly.
   nix.gc = {
     automatic = true;
     dates = "weekly";
   };
   systemd.services.nix-gc.script = lib.mkForce ''
-    ${pkgs.nix}/bin/nix-env --delete-generations +3 -p /nix/var/nix/profiles/system
+    ${pkgs.nix}/bin/nix-env --delete-generations +${toString config.boot.loader.systemd-boot.configurationLimit} -p /nix/var/nix/profiles/system
     ${pkgs.nix}/bin/nix-store --gc
   '';
 
