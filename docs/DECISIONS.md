@@ -13,6 +13,7 @@
 - D11. What was borrowed from other NixOS configs, and what was not
 - D12. ai-fw installs from its own ISO; root has no password
 - D13. LLM performance settings for the Framework Desktop
+- D14. SSH: password login for brandon, no keys
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -124,7 +125,9 @@ Removed from ai-fw, and why each was safe to drop:
 - **Home Manager**, and with it claude-code, fish, starship, bat, fzf, zoxide,
   eza, direnv, git config, btop and ncdu: nothing on the box is configured per
   user. `brandon` gets bash.
-- **fail2ban:** SSH is key-only, so there is no password to guess.
+- **fail2ban:** SSH was key-only, so there was no password to guess. That
+  reason collapsed with D14 (password login, no keys in use); fail2ban is
+  back on ai-fw.
 - **gnupg agent with SSH support, `nh`, `allowUnfree`:** workstation settings.
   They moved from `common.nix` to `modules/workstation.nix`, imported by bc-ws
   only; bc-ws's system derivation is byte-identical before and after. ai-fw
@@ -274,18 +277,18 @@ Not borrowed:
 published; CI evaluates it on every PR but doesn't build the ~1.5 GB image.
 This narrows D11's "no custom ISOs", which was about Wimpress-style daily
 published images: one image built when needed replaces seven hand-typed steps,
-two of them destructive, with one command run over SSH from bc-ws.
+two of them destructive, with one command at the installer's console (or
+over SSH, after setting a temporary root password there).
 
 Everything that must match ai-fw comes from ai-fw's own config, so the two
 can't drift: the root and boot filesystem UUIDs (formatted to match
 `hardware-configuration.nix`), the flake it installs
-(`system.autoUpgrade.flake`), the SSH keys root accepts in the installer, and
-the kernel. The script refuses to touch the disk until its name is typed back.
+(`system.autoUpgrade.flake`), the `/boot` mount options, and the kernel. The script refuses to touch the disk until its name is typed back.
 
 Root on ai-fw has no password, as on Ubuntu or Fedora: the config sets none
 and the installer runs `nixos-install --no-root-passwd`, so `/etc/shadow`
 holds a locked marker rather than a hash. Nothing random is generated. The way
-in is `brandon` (SSH key, or the console) plus `sudo` with `brandon`'s
+in is `brandon` (SSH password, or the console) plus `sudo` with `brandon`'s
 password; if that password is lost, boot the installer and reset it with
 `nixos-enter`. `tests/invariants.nix` fails if a root password is ever
 configured. bc-ws is unchanged: its root keeps whatever was set at install.
@@ -335,3 +338,18 @@ Not adopted:
   warns against it otherwise.
 - **`amdgpu.gttsize`:** deprecated; `ttm.pages_limit` already sets the limit
   (112 GiB of the 127 GiB).
+
+## D14. SSH: password login for brandon, no keys (2026-11-04)
+
+The three keys at github.com/blconway.keys (copied into ai-fw on 2026-11-04)
+have no private halves left in use, and the machine that ran the installer
+test held none of them. So ai-fw takes SSH passwords instead, for `brandon`
+only (`AllowUsers`), with root login off (root has no password anyway, D12).
+fail2ban is back on: D8 dropped it because SSH was key-only, and that reason
+no longer holds. Exposure: port 22 on the LAN and the tailnet, never the
+internet. `tests/invariants.nix` fails if root SSH login is allowed, or if
+passwords are accepted without fail2ban.
+
+Revisit by adding a key to `users.users.brandon.openssh.authorizedKeys.keys`
+and setting `PasswordAuthentication = false`; the installer then needs no
+change.

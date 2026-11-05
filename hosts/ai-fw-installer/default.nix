@@ -7,8 +7,9 @@
 }:
 
 # Installer ISO for ai-fw: the NixOS minimal installer plus `install-ai-fw`,
-# reachable over SSH with the same keys as ai-fw. Build it with
-# `nix build .#ai-fw-installer-iso` (docs/DECISIONS.md, D12).
+# run at its console. Build it with `nix build .#ai-fw-installer-iso`
+# (docs/DECISIONS.md, D12). To run it over SSH instead, set a temporary root
+# password at the console (`sudo passwd root`); the installer's sshd accepts it.
 let
   t = target.config;
   uuidOf = fs: lib.removePrefix "/dev/disk/by-uuid/" t.fileSystems.${fs}.device;
@@ -45,9 +46,6 @@ in
     "nix-command"
     "flakes"
   ];
-
-  # sshd is on in the installer; root logs in with ai-fw's keys only.
-  users.users.root.openssh.authorizedKeys.keys = t.users.users.brandon.openssh.authorizedKeys.keys;
 
   environment.systemPackages = [ install-ai-fw ];
 }

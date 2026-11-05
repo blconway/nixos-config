@@ -28,8 +28,8 @@ Boot the ai-fw installer USB, then run one command over SSH from bc-ws. About
    sudo install-ai-fw /dev/nvme0n1
    ```
 
-   or over SSH from a machine holding one of ai-fw's keys (the ones at
-   github.com/blconway.keys):
+   or over SSH from bc-ws, after setting a temporary root password at the
+   installer's console with `sudo passwd root` (it lasts until the USB reboots):
 
    ```sh
    ssh -t root@<installer-address> install-ai-fw /dev/nvme0n1
@@ -47,9 +47,8 @@ stock NixOS ISO instead, run its steps by hand.
 
 ## After first boot
 
-Log in as `brandon`: at the console with the password you set, or over SSH
-with one of ai-fw's keys (password login over SSH is off), using the LAN
-address until Tailscale is up.
+Log in as `brandon` with the password you set, at the console or over SSH
+(`ssh brandon@<address>`), using the LAN address until Tailscale is up.
 
 1. Join the tailnet, then approve the machine in the Tailscale admin console:
    `sudo tailscale up`
@@ -90,8 +89,8 @@ Nothing else on ai-fw holds state.
 
 ## If it goes wrong
 
-- **`ssh` to the installer is refused:** the key you're using isn't one of
-  ai-fw's (`hosts/ai-fw/default.nix`); the installer accepts only those.
+- **`ssh` to the installer is refused:** set root's password at the installer
+  console first (`sudo passwd root`); until then it accepts no logins.
 - **No boot entry / drops to UEFI shell:** Secure Boot is still on, or the
   install failed; boot the USB and run `install-ai-fw` again.
 - **"device not found" for `/` at boot:** a filesystem got a different UUID

@@ -106,13 +106,13 @@ let
   )
   ++ both (
     name: c: {
-      d = "D8";
-      what = "${name} allows SSH keys only, if it runs sshd (D8 dropped fail2ban on this)";
+      d = "D14";
+      what = "${name} has no root SSH login, and runs fail2ban if SSH takes passwords";
       ok =
         !c.services.openssh.enable
         || (
-          !c.services.openssh.settings.PasswordAuthentication
-          && !c.services.openssh.settings.KbdInteractiveAuthentication
+          c.services.openssh.settings.PermitRootLogin == "no"
+          && (!c.services.openssh.settings.PasswordAuthentication || c.services.fail2ban.enable)
         );
     }
   );

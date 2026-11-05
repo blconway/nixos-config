@@ -39,21 +39,20 @@
   # ============================================================
   # SSH
   # ============================================================
+  # Password login for brandon only; no SSH keys are in use (D14). Root can't
+  # log in over SSH and has no password anyway (D12).
   services.openssh = {
     enable = true;
     settings = {
-      PasswordAuthentication = false;
+      PasswordAuthentication = true;
       KbdInteractiveAuthentication = false;
       PermitRootLogin = "no";
+      AllowUsers = [ "brandon" ];
     };
   };
 
-  # Copied from https://github.com/blconway.keys on 2026-11-04.
-  users.users.brandon.openssh.authorizedKeys.keys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGJ4B8Q/IX1O5F9O2HysY9Q5JB4oVLtoeBNRTCPAASGe"
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEE1vma8Ns/m8PjIVA+GwYDvp+aCVmvB62m0OLGisflF"
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINoIDuNrI0kPi6jgVQF4OFzSBgQeWW1zDp9tjhG+UzYO"
-  ];
+  # With a password to guess, ban addresses that keep failing (D14).
+  services.fail2ban.enable = true;
 
   # ============================================================
   # Tailscale VPN
