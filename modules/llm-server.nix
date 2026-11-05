@@ -121,10 +121,14 @@ in
     ];
     wants = [ "network-online.target" ];
     path = [ pkgs.curl ];
+    # Not a oneshot: multi-user.target waits for the oneshots it wants, so a
+    # boot (and `nixos-rebuild switch`) would sit for hours behind the first
+    # download. The installer VM test caught this: no "Reached target
+    # Multi-User System" in 4 minutes. "exec" counts as started at once.
+    restartIfChanged = false;
     serviceConfig = {
-      Type = "oneshot";
+      Type = "exec";
       DynamicUser = true;
-      TimeoutStartSec = "infinity"; # the first download can take hours
     };
     script = lib.concatMapStrings (m: ''
       echo "warming ${m.name}"
