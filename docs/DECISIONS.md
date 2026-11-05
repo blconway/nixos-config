@@ -14,6 +14,7 @@
 - D12. ai-fw installs from its own ISO; root has no password
 - D13. LLM performance settings for the Framework Desktop
 - D14. SSH: password login for brandon, no keys
+- D15. Secure Boot deferred; Lanzaboote is ready on a branch
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -353,3 +354,29 @@ passwords are accepted without fail2ban.
 Revisit by adding a key to `users.users.brandon.openssh.authorizedKeys.keys`
 and setting `PasswordAuthentication = false`; the installer then needs no
 change.
+
+## D15. Secure Boot deferred; Lanzaboote is ready on a branch (2026-11-04)
+
+ai-fw boots with Secure Boot off: systemd-boot and the kernels aren't signed.
+Wanted only if easy, and it wasn't finished to the bar of the rest: the boot
+path changes right before the reinstall, and key generation and enrollment
+had not run in a test.
+
+Ready when wanted: branch `ai-fw-secure-boot` (commit 8c40304) adds
+Lanzaboote v1.2.0 (nix-community, GPL-3.0) as a flake input following our
+nixpkgs. Its module generates keys on first boot, stages them with
+Microsoft's (the GPU option ROM needs those), and systemd-boot enrolls them on
+the next boot in Setup Mode; boot counting (3 tries) and the 10-generation
+limit stay. It evaluates and builds (`nix flake check` passes); a full ai-fw
+build took 193 s on this machine, mostly compiling `lzbt` and fetching a Rust
+toolchain, since nixpkgs has no `lzbt`. Before merging: run the installer VM
+test with `OVMFFull` (Secure Boot firmware) through enrollment to an enforced
+boot, and check the PR's CI time stays under ten minutes.
+
+Considered: nixpkgs' own `boot.loader.limine.secureBoot` (sbctl key
+generation and enrollment, no extra input, nothing compiled). Not chosen
+because limine has no automatic boot assessment, and boot counting is how an
+unattended upgrade that doesn't boot rolls itself back (D5).
+
+Turning it on later also needs a BIOS password, or Secure Boot can simply be
+switched off again by anyone at the machine.

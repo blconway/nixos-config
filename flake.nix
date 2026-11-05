@@ -65,7 +65,8 @@
       };
 
       # ── ai-fw installer ISO ───────────────────────────────
-      # Takes disk UUIDs, SSH keys and the flake to install from ai-fw itself.
+      # Takes disk UUIDs, /boot options, the kernel and the flake to install
+      # from ai-fw itself.
       nixosConfigurations.ai-fw-installer = nixpkgs.lib.nixosSystem {
         specialArgs.target = self.nixosConfigurations.ai-fw;
         modules = [ ./hosts/ai-fw-installer ];
