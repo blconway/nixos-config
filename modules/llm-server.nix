@@ -26,9 +26,14 @@ let
       fit-ctx = "131072"; # card: final answers up to 131072 tokens
     }
     {
-      # Fast default: ~22 GB, 3B active. Card: thinking mode, precise coding.
+      # Fast default: ~23 GB, 3B active. Card: thinking mode, precise coding.
       name = "qwen3.6-35b-a3b";
-      hf-repo = "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_XL";
+      # The -MTP repo keeps the multi-token-prediction layer (blk.40.nextn)
+      # that the plain one strips; it drafts 2 tokens per step, which
+      # strix-halo-guide measured at +18-35% generation on Vulkan (D13).
+      hf-repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_XL";
+      spec-type = "draft-mtp";
+      spec-draft-n-max = "2";
       temp = "0.6";
       top-p = "0.95";
       top-k = "20";
@@ -65,7 +70,38 @@ in
       # Both models together (~116 GB) don't fit beside a KV cache, so the
       # router unloads one to load the other.
       models-max = 1;
+
+      # Every model instance inherits these (D13). All of strix-halo-guide's
+      # measured runs use flash attention and no mmap; with mmap the ~94 GB
+      # file would also sit in the page cache beside its GPU copy, in the
+      # same RAM. -ub 1024 was its best Qwen3.6 MTP result.
+      flash-attn = "on";
+      load-mode = "none";
+      ubatch-size = 1024;
     };
+  };
+
+  # ============================================================
+  # Power: what tuned's accelerator-performance profile does
+  # ============================================================
+  # Set directly rather than running tuned (a Python daemon; D8): CPU at full
+  # performance, the firmware's performance platform profile (power limits),
+  # and little swapping.
+  powerManagement.cpuFreqGovernor = "performance";
+  boot.kernel.sysctl."vm.swappiness" = 10;
+  systemd.services.platform-profile-performance = {
+    description = "Select the firmware's performance platform profile";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      choices=/sys/firmware/acpi/platform_profile_choices
+      if [ -r "$choices" ] && grep -qw performance "$choices"; then
+        echo performance > /sys/firmware/acpi/platform_profile
+      else
+        echo "no performance platform profile offered: $(cat "$choices" 2>/dev/null)"
+      fi
+      echo "platform_profile: $(cat /sys/firmware/acpi/platform_profile 2>/dev/null)"
+    '';
   };
 
   # ============================================================
@@ -85,10 +121,14 @@ in
     ];
     wants = [ "network-online.target" ];
     path = [ pkgs.curl ];
+    # Not a oneshot: multi-user.target waits for the oneshots it wants, so a
+    # boot (and `nixos-rebuild switch`) would sit for hours behind the first
+    # download. The installer VM test caught this: no "Reached target
+    # Multi-User System" in 4 minutes. "exec" counts as started at once.
+    restartIfChanged = false;
     serviceConfig = {
-      Type = "oneshot";
+      Type = "exec";
       DynamicUser = true;
-      TimeoutStartSec = "infinity"; # the first download can take hours
     };
     script = lib.concatMapStrings (m: ''
       echo "warming ${m.name}"

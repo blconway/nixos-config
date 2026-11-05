@@ -11,6 +11,9 @@
 - D9. Repo structure: explicit hosts and plain modules, no framework
 - D10. bc-ws matches Bazzite DX NVIDIA, on NixOS
 - D11. What was borrowed from other NixOS configs, and what was not
+- D12. ai-fw installs from its own ISO; root has no password
+- D13. LLM performance settings for the Framework Desktop
+- D14. SSH: password login for brandon, no keys
 
 ## D1. ai-fw runs llama.cpp only (2026-11-04)
 
@@ -122,7 +125,9 @@ Removed from ai-fw, and why each was safe to drop:
 - **Home Manager**, and with it claude-code, fish, starship, bat, fzf, zoxide,
   eza, direnv, git config, btop and ncdu: nothing on the box is configured per
   user. `brandon` gets bash.
-- **fail2ban:** SSH is key-only, so there is no password to guess.
+- **fail2ban:** SSH was key-only, so there was no password to guess. That
+  reason collapsed with D14 (password login, no keys in use); fail2ban is
+  back on ai-fw.
 - **gnupg agent with SSH support, `nh`, `allowUnfree`:** workstation settings.
   They moved from `common.nix` to `modules/workstation.nix`, imported by bc-ws
   only; bc-ws's system derivation is byte-identical before and after. ai-fw
@@ -264,3 +269,87 @@ Not borrowed:
 - **sops-nix/agenix, colmena/deploy-rs, monitoring stacks, host registries,
   haumea, llama-swap, custom ISOs, treefmt-nix, git-hooks.nix:** secrets we
   don't have, many-machine tooling, or a new input (D9).
+
+## D12. ai-fw installs from its own ISO; root has no password (2026-11-04)
+
+`nixosConfigurations.ai-fw-installer` is the NixOS minimal installer plus
+`install-ai-fw`. Built on demand (`nix build .#ai-fw-installer-iso`), never
+published; CI evaluates it on every PR but doesn't build the ~1.5 GB image.
+This narrows D11's "no custom ISOs", which was about Wimpress-style daily
+published images: one image built when needed replaces seven hand-typed steps,
+two of them destructive, with one command at the installer's console (or
+over SSH, after setting a temporary root password there).
+
+Everything that must match ai-fw comes from ai-fw's own config, so the two
+can't drift: the root and boot filesystem UUIDs (formatted to match
+`hardware-configuration.nix`), the flake it installs
+(`system.autoUpgrade.flake`), the `/boot` mount options, and the kernel. The script refuses to touch the disk until its name is typed back.
+
+Root on ai-fw has no password, as on Ubuntu or Fedora: the config sets none
+and the installer runs `nixos-install --no-root-passwd`, so `/etc/shadow`
+holds a locked marker rather than a hash. Nothing random is generated. The way
+in is `brandon` (SSH password, or the console) plus `sudo` with `brandon`'s
+password; if that password is lost, boot the installer and reset it with
+`nixos-enter`. `tests/invariants.nix` fails if a root password is ever
+configured. bc-ws is unchanged: its root keeps whatever was set at install.
+
+## D13. LLM performance settings for the Framework Desktop (2026-11-04)
+
+Hardware, read from this machine under Windows before the reimage: Framework
+Desktop, Ryzen AI Max+ 395 with Radeon 8060S, 127 GiB RAM, one WD SN850X 2 TB
+NVMe, BIOS 03.06 with the GPU carve-out already at its 0.5 GiB minimum.
+
+Source for the measured settings: hogeheer499-commits/strix-halo-guide
+(MTP_SPECULATIVE_DECODING.md, STRIX_HALO_LOCAL_LLM_SETUP.md), Strix Halo
+results only, read 2026-11-04.
+
+Baked in:
+
+- **Qwen3.6-35B-A3B with MTP speculative decoding** (`spec-type =
+  draft-mtp`, `spec-draft-n-max = 2`): +18% (Q4_K_M) to +35% (IQ4_XS with Q8
+  MTP head) generation on Vulkan. Needs the MTP layer, which
+  `unsloth/Qwen3.6-35B-A3B-GGUF` strips and `unsloth/Qwen3.6-35B-A3B-MTP-GGUF`
+  keeps (`blk.40.nextn.*`, checked in the file header). Same quant, +0.5 GB.
+- **Flash attention on, mmap off (`load-mode = none`), `ubatch-size = 1024`**
+  for every model: what all of the guide's measured runs use; 1024 was its
+  best MTP result. Without mmap the 94 GB model isn't also held in the page
+  cache in the same RAM.
+- **Power:** what tuned's `accelerator-performance` profile sets, set
+  directly: `performance` CPU governor, the firmware's `performance` ACPI
+  platform profile when offered, `vm.swappiness = 10`. Not the tuned daemon
+  itself (Python, and its default power-profiles support asserts upower; D8).
+
+Measure on ai-fw before deciding (`llama-bench` and a real agent task):
+
+- **MTP for Qwen3.8-Flash-Next** (Unsloth ships `MTP/mtp-*.gguf` drafts): the
+  guide saw MTP make Qwen3-Next, the same hybrid design, 79% *slower* on
+  Vulkan while it helped on ROCm; one unverified community report shows +106%.
+- **ROCm for prompt processing:** the guide has ROCm 25–34% ahead at 16K
+  prompts, Vulkan 18–30% ahead on generation. Agent work sends long prompts,
+  so this may reverse D2 for one model.
+- **zram** (D11), **q8_0 KV cache** (memory, not speed), **parallel slots**
+  (left at auto), **thread count**.
+
+Not adopted:
+
+- **`amdgpu.cwsr_enable=0`:** the guide's workaround for a ROCm MES hang; ai-fw
+  runs Vulkan.
+- **`amd_iommu=off`:** the guide keeps it for one benchmark profile only and
+  warns against it otherwise.
+- **`amdgpu.gttsize`:** deprecated; `ttm.pages_limit` already sets the limit
+  (112 GiB of the 127 GiB).
+
+## D14. SSH: password login for brandon, no keys (2026-11-04)
+
+The three keys at github.com/blconway.keys (copied into ai-fw on 2026-11-04)
+have no private halves left in use, and the machine that ran the installer
+test held none of them. So ai-fw takes SSH passwords instead, for `brandon`
+only (`AllowUsers`), with root login off (root has no password anyway, D12).
+fail2ban is back on: D8 dropped it because SSH was key-only, and that reason
+no longer holds. Exposure: port 22 on the LAN and the tailnet, never the
+internet. `tests/invariants.nix` fails if root SSH login is allowed, or if
+passwords are accepted without fail2ban.
+
+Revisit by adding a key to `users.users.brandon.openssh.authorizedKeys.keys`
+and setting `PasswordAuthentication = false`; the installer then needs no
+change.

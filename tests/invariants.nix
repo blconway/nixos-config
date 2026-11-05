@@ -17,6 +17,30 @@ let
   invariants = [
     # ai-fw
     {
+      d = "D12";
+      what = "ai-fw's root has no password; brandon and sudo are the way in";
+      ok =
+        let
+          r = ai.users.users.root;
+        in
+        r.hashedPassword == null
+        && r.password == null
+        && r.hashedPasswordFile == null
+        && r.initialPassword == null
+        && lib.elem r.initialHashedPassword [
+          null
+          "!"
+        ];
+    }
+    {
+      d = "D13";
+      what = "llama-server runs with flash attention, no mmap, and the performance governor";
+      ok =
+        ai.services.llama-cpp.settings.flash-attn == "on"
+        && ai.services.llama-cpp.settings.load-mode == "none"
+        && ai.powerManagement.cpuFreqGovernor == "performance";
+    }
+    {
       d = "D1/D3";
       what = "ai-fw opens only SSH on the LAN";
       ok = ai.networking.firewall.allowedTCPPorts == [ 22 ];
@@ -82,13 +106,13 @@ let
   )
   ++ both (
     name: c: {
-      d = "D8";
-      what = "${name} allows SSH keys only, if it runs sshd (D8 dropped fail2ban on this)";
+      d = "D14";
+      what = "${name} has no root SSH login, and runs fail2ban if SSH takes passwords";
       ok =
         !c.services.openssh.enable
         || (
-          !c.services.openssh.settings.PasswordAuthentication
-          && !c.services.openssh.settings.KbdInteractiveAuthentication
+          c.services.openssh.settings.PermitRootLogin == "no"
+          && (!c.services.openssh.settings.PasswordAuthentication || c.services.fail2ban.enable)
         );
     }
   );
