@@ -56,14 +56,16 @@ Sampling defaults are each model's card values; a client's own settings win.
 curl http://ai-fw:8080/v1/models
 ```
 
-Clean install: [docs/runbooks/ai-fw-install.md](docs/runbooks/ai-fw-install.md).
+Clean install: boot the installer ISO (`nix build .#ai-fw-installer-iso`) and
+run `ssh -t root@<installer-address> install-ai-fw /dev/nvme0n1` from bc-ws;
+the full procedure is [docs/runbooks/ai-fw-install.md](docs/runbooks/ai-fw-install.md).
 
 ## Layout
 
 | Path | What |
 |---|---|
 | `flake.nix` | Hosts and inputs |
-| `hosts/<host>/` | Per-machine config, hardware config, and Home Manager config where the host has one (bc-ws) |
+| `hosts/<host>/` | Per-machine config, hardware config, and Home Manager config where the host has one (bc-ws); `hosts/ai-fw-installer/` is ai-fw's installer ISO |
 | `modules/` | Shared NixOS modules |
 | `home/` | Shared Home Manager config |
 | `docs/DECISIONS.md` | What was decided and why |

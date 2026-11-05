@@ -64,8 +64,20 @@
         ];
       };
 
-      # `nix flake check` evaluates both hosts and the invariants; without
-      # --no-build it also builds each host's system.
+      # ── ai-fw installer ISO ───────────────────────────────
+      # Takes disk UUIDs, SSH keys and the flake to install from ai-fw itself.
+      nixosConfigurations.ai-fw-installer = nixpkgs.lib.nixosSystem {
+        specialArgs.target = self.nixosConfigurations.ai-fw;
+        modules = [ ./hosts/ai-fw-installer ];
+      };
+
+      # `nix build .#ai-fw-installer-iso` → result/iso/*.iso
+      packages.x86_64-linux.ai-fw-installer-iso =
+        self.nixosConfigurations.ai-fw-installer.config.system.build.isoImage;
+
+      # `nix flake check` evaluates every host and the invariants; without
+      # --no-build it also builds each host's system. The installer is a
+      # host here too, so it is evaluated on every PR.
       checks.x86_64-linux =
         nixpkgs.lib.mapAttrs' (
           name: host: nixpkgs.lib.nameValuePair "nixos-${name}" host.config.system.build.toplevel

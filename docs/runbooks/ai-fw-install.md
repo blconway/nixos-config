@@ -1,67 +1,54 @@
 # Clean install of ai-fw
 
-From the NixOS installer USB to a running endpoint, about 30 minutes plus the
-model downloads. **This erases the whole disk.**
+Boot the ai-fw installer USB, then run one command over SSH from bc-ws. About
+20 minutes plus the model downloads. **This erases the whole disk.**
 
 ## Before booting the USB
 
+- Build the ISO and write it to a USB stick, from any machine with Nix:
+
+  ```sh
+  nix build github:blconway/nixos-config#ai-fw-installer-iso
+  sudo dd if=result/iso/ai-fw-installer-*.iso of=/dev/sdX bs=4M status=progress conv=fsync
+  ```
+
+  (`/dev/sdX` is the USB stick; check with `lsblk`. On Windows, write the
+  `.iso` with Rufus or balenaEtcher instead.)
 - BIOS: set the iGPU memory carve-out (UMA frame buffer) to its minimum, so the
   GPU uses GTT, which `boot.kernelParams` in `hosts/ai-fw/default.nix` sizes.
 - BIOS: Secure Boot off (systemd-boot here is unsigned).
 - Plug in Ethernet.
-- Any current NixOS ISO works, minimal is enough: the flake brings its own
-  nixpkgs.
 
-## In the installer, as root (`sudo -i`)
+## Install
 
-1. Find the disk. The commands below assume `/dev/nvme0n1`; change it if
-   `lsblk` says otherwise.
+1. Boot the USB. At the installer's prompt, `ip -4 addr` shows its address.
+2. Either at the installer's own console:
 
    ```sh
-   lsblk
+   sudo install-ai-fw /dev/nvme0n1
    ```
 
-2. Partition: a 1 GiB EFI partition and the rest as root.
+   or over SSH from bc-ws, after setting a temporary root password at the
+   installer's console with `sudo passwd root` (it lasts until the USB reboots):
 
    ```sh
-   parted -s /dev/nvme0n1 -- mklabel gpt mkpart ESP fat32 1MiB 1GiB set 1 esp on mkpart root ext4 1GiB 100%
+   ssh -t root@<installer-address> install-ai-fw /dev/nvme0n1
    ```
 
-3. Format with the UUIDs already in `hosts/ai-fw/hardware-configuration.nix`,
-   so that file stays correct and nothing needs committing mid-install.
+   It shows the disk, asks you to type its name to confirm, asks for
+   `brandon`'s password (used for `sudo`; ai-fw's root has none, D12), then
+   partitions, formats with the UUIDs in `hosts/ai-fw/hardware-configuration.nix`
+   and installs `github:blconway/nixos-config#ai-fw`. Check the disk name with
+   `lsblk` if the box has more than one.
+3. Remove the USB and reboot.
 
-   ```sh
-   mkfs.fat -F 32 -i 34022528 /dev/nvme0n1p1
-   mkfs.ext4 -U 22dddf67-d53a-4ec8-8418-fcdbdfb9d55c /dev/nvme0n1p2
-   ```
-
-4. Mount.
-
-   ```sh
-   mount /dev/nvme0n1p2 /mnt
-   mount --mkdir /dev/nvme0n1p1 /mnt/boot
-   ```
-
-5. Install straight from GitHub (the repo is public, D7; no local clone is
-   needed, now or later). It asks for a root password at the end; root can't
-   log in over SSH, so this is for the console only.
-
-   ```sh
-   nixos-install --flake github:blconway/nixos-config#ai-fw --option experimental-features "nix-command flakes"
-   ```
-
-6. Give `brandon` a password. The config sets none, and `sudo` needs one.
-
-   ```sh
-   nixos-enter --root /mnt -c "passwd brandon"
-   ```
-
-7. `reboot`, and remove the USB.
+`hosts/ai-fw-installer/install-ai-fw.sh` is the procedure; to install from a
+stock NixOS ISO instead, run its steps by hand.
 
 ## After first boot
 
-SSH in as `brandon` with your key (password login is off), using the LAN
-address until Tailscale is up.
+Log in as `brandon` with the password you set, at the console or over SSH
+(`ssh brandon@<address>`), using the LAN address until Tailscale is up.
 
 1. Join the tailnet, then approve the machine in the Tailscale admin console:
    `sudo tailscale up`
@@ -80,18 +67,35 @@ address until Tailscale is up.
    ```
 
 4. From another tailnet device: `curl http://ai-fw:8080/v1/models`.
+5. Check the performance settings took effect (D13):
+   - `journalctl -b -u platform-profile-performance` ends with
+     `platform_profile: performance`
+   - `cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor` prints `performance`
+6. Measure what D13 left open, once the models are downloaded. The files are
+   under `/var/cache/private/llama-cpp` (`sudo find` them), for example:
+
+   ```sh
+   sudo llama-bench -m <qwen3.8 file> -fa on -lm none,mmap -ub 512,1024 -p 512,16384 -n 128
+   ```
+
+   Then try Flash-Next with its MTP draft in a real agent task, and record the
+   numbers in D13 before changing a default.
+
+What a clean install loses, all of it recreated by the steps above: the
+downloaded models (~116 GB, re-downloaded after boot), the Tailscale node
+identity (a new machine in the admin console; delete the old one), and SSH
+host keys (clients will warn once; remove the old `known_hosts` line).
+Nothing else on ai-fw holds state.
 
 ## If it goes wrong
 
-- **No boot entry / drops to UEFI shell:** Secure Boot is still on, or step 5
-  failed; boot the USB, repeat steps 4 and 5 (no need to re-format).
-
-What a clean install loses, all of it recreated by the steps above: the
-downloaded models (~116 GB, re-downloaded in step 3 after boot), the Tailscale
-node identity (a new machine in the admin console; delete the old one), and
-SSH host keys (clients will warn once; remove the old `known_hosts` line).
-Nothing else on ai-fw holds state.
+- **`ssh` to the installer is refused:** set root's password at the installer
+  console first (`sudo passwd root`); until then it accepts no logins.
+- **No boot entry / drops to UEFI shell:** Secure Boot is still on, or the
+  install failed; boot the USB and run `install-ai-fw` again.
 - **"device not found" for `/` at boot:** a filesystem got a different UUID
-  than step 3; check with `blkid` from the USB.
+  than `hardware-configuration.nix` expects; check with `blkid` from the USB.
 - **GTT total far below 120259084288:** the BIOS carve-out is not at minimum,
   or the kernel parameters didn't apply (`cat /proc/cmdline`).
+- **Forgot `brandon`'s password:** boot the USB, then
+  `mount /dev/nvme0n1p2 /mnt && nixos-enter --root /mnt -c "passwd brandon"`.
