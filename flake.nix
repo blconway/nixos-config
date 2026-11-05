@@ -16,6 +16,13 @@
 
     # nixos-hardware — vendor-specific hardware quirks and optimisations.
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+
+    # Lanzaboote — signed boot files for UEFI Secure Boot on ai-fw (D15).
+    # Pinned to a release; bump the tag on purpose, not with the daily lock.
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.2.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -25,6 +32,7 @@
       home-manager,
       nix-flatpak,
       nixos-hardware,
+      lanzaboote,
       ...
     }:
     let
@@ -60,12 +68,14 @@
           ./hosts/ai-fw
 
           nixos-hardware.nixosModules.framework-desktop-amd-ai-max-300-series
+          lanzaboote.nixosModules.lanzaboote
           # No Home Manager: nothing on this box is configured per user.
         ];
       };
 
       # ── ai-fw installer ISO ───────────────────────────────
-      # Takes disk UUIDs, SSH keys and the flake to install from ai-fw itself.
+      # Takes disk UUIDs, /boot options, the kernel and the flake to install
+      # from ai-fw itself.
       nixosConfigurations.ai-fw-installer = nixpkgs.lib.nixosSystem {
         specialArgs.target = self.nixosConfigurations.ai-fw;
         modules = [ ./hosts/ai-fw-installer ];

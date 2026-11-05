@@ -24,6 +24,7 @@
   environment.systemPackages = with pkgs; [
     llama-cpp-vulkan # llama-bench, to measure models on this box
     radeontop # iGPU utilization
+    sbctl # `sbctl status`: Secure Boot keys and enrollment
     tmux # long downloads and benchmarks over SSH
   ];
 
@@ -104,6 +105,25 @@
       lower = "04:00";
       upper = "06:00";
     };
+  };
+
+  # ============================================================
+  # Secure Boot (D15)
+  # ============================================================
+  # Lanzaboote installs signed systemd-boot entries in place of the plain
+  # systemd-boot module. First boot creates the keys in /var/lib/sbctl and
+  # stages them, Microsoft's included (the GPU's option ROM is signed with
+  # them); systemd-boot enrolls them on the next boot if the firmware is in
+  # Setup Mode. Then turn Secure Boot on in the BIOS (runbook).
+  boot.loader.systemd-boot.enable = lib.mkForce false;
+  boot.lanzaboote = {
+    enable = true;
+    pkiBundle = "/var/lib/sbctl";
+    autoGenerateKeys.enable = true;
+    autoEnrollKeys.enable = true;
+    # Same rollback as common.nix's systemd-boot settings: 3 tries, and the
+    # 10-generation limit (inherited from systemd-boot.configurationLimit).
+    bootCounting.initialTries = 3;
   };
 
   system.stateVersion = "25.11";
